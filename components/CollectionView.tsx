@@ -45,7 +45,7 @@ export default function CollectionView({ collection, allStickers, teamById, onTo
         <div style={{display:'flex',gap:'.625rem',marginBottom:'.75rem'}}>
           <select className="ft-input" style={{flex:1,padding:'.625rem 1rem',fontSize:'.875rem'}} value={filterTm} onChange={e=>{setFilterTm(e.target.value);setPage(1)}} aria-label="Filtrar por seleção">
             <option value="all">🌍 Todas as seleções</option>
-            <option value="FIFA">⭐ Especiais Copa 2026</option>
+            <option value="FWC">⭐ Especiais Copa 2026</option>
             {TEAMS.map(t=><option key={t.id} value={t.id}>{t.flag} {t.name}</option>)}
           </select>
           <div style={{display:'flex',border:'1px solid #1e3a5a',borderRadius:'.75rem',overflow:'hidden',flexShrink:0}}>
