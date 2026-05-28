@@ -14,11 +14,12 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
   const [attempts, setAttempts] = useState(0)
   const [blocked, setBlocked] = useState(false)
   const [consent, setConsent] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   async function handleGoogle() {
     if (!consent) { setErro('Aceite os termos para continuar.'); return }
     setGLoading(true); setErro('')
-    const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo:`${window.location.origin}/` } })
+    const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo:`${window.location.origin}/api/auth/callback` } })
     if (error) { setErro('Erro ao conectar com Google.'); setGLoading(false) }
   }
 
@@ -31,8 +32,9 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
     setLoading(true); setErro('')
     try {
       if (tab === 'cadastro') {
-        const { error } = await sb.auth.signUp({ email:email.trim(), password:senha, options:{ data:{ name:nome.trim() } } })
+        const { data, error } = await sb.auth.signUp({ email:email.trim(), password:senha, options:{ data:{ name:nome.trim() } } })
         if (error) throw error
+        if (!data.session) { setEmailSent(true); setLoading(false); return }
         onSuccess()
       } else {
         const { error } = await sb.auth.signInWithPassword({ email:email.trim(), password:senha })
@@ -62,6 +64,15 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="card" style={{width:'100%',maxWidth:'24rem',padding:'1.75rem'}}>
+        {emailSent && (
+          <div style={{textAlign:'center',padding:'1rem 0'}}>
+            <div style={{fontSize:'3rem',marginBottom:'.75rem'}}>📧</div>
+            <p style={{color:'#f0f8ff',fontWeight:700,fontSize:'1.125rem',marginBottom:'.5rem'}}>Confirme seu email</p>
+            <p style={{color:'#6b93b8',fontSize:'.875rem',lineHeight:1.6,marginBottom:'1.25rem'}}>Enviamos um link de confirmação para <strong style={{color:'#f0f8ff'}}>{email}</strong>. Clique no link para ativar sua conta.</p>
+            <button onClick={()=>setEmailSent(false)} className="btn-ghost" style={{width:'100%'}}>Voltar</button>
+          </div>
+        )}
+        {!emailSent && <>
         {/* Google OAuth em destaque */}
         <button onClick={handleGoogle} disabled={gLoading||blocked} aria-label="Entrar com Google"
           style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:'.75rem',padding:'.875rem',borderRadius:'1rem',background:'white',color:'#1f2937',fontWeight:600,fontSize:'1rem',border:'none',cursor:'pointer',marginBottom:'1rem',opacity:gLoading||blocked?.5:1}}>
@@ -139,6 +150,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
         <p style={{textAlign:'center',color:'#3a5a7a',fontSize:'.75rem',marginTop:'1.25rem',lineHeight:1.6}}>
           🔒 Imagens descartadas imediatamente após análise. Nunca armazenamos fotos.
         </p>
+        </>}
       </div>
     </div>
   )
