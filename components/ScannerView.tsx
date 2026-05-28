@@ -3,8 +3,11 @@ import { useUser } from '@supabase/auth-helpers-react'
 import { updateProfile, type DbProfile } from '@/lib/supabase'
 import { parseCodesFromText, TEAMS, type Sticker, type CollectionMap } from '@/lib/data'
 
-type ScanMode = 'camera'|'manual'|'upload'|'lista'
+type ScanMode = 'camera'|'manual'|'upload'|'lista'|'verificar'
 type CamMode  = 'costas'|'pagina'
+
+interface VerifyIssue { slotCode?: string; description: string }
+interface VerifyResponse { pageTeam: string|null; teamName: string|null; teamFlag: string|null; issues: VerifyIssue[]; error?: string }
 
 async function stripExif(file: File): Promise<string> {
   return new Promise((res, rej) => {
@@ -29,19 +32,22 @@ interface Props { profile:DbProfile; collection:CollectionMap; allStickers:Stick
 
 export default function ScannerView({ profile, collection, allStickers, onAdd, onProfileUpdate }: Props) {
   const user = useUser()
-  const [mode,       setMode]      = useState<ScanMode>('camera')
-  const [camMode,    setCamMode]   = useState<CamMode>('costas')
-  const [camActive,  setCamActive] = useState(false)
-  const [camError,   setCamError]  = useState('')
-  const [scanning,   setScanning]  = useState(false)
-  const [processing, setProcessing]= useState(false)
-  const [results,    setResults]   = useState<{found:string[];error?:string}|null>(null)
-  const [saving,     setSaving]    = useState(false)
-  const [manual,     setManual]    = useState('')
-  const [lista,      setLista]     = useState('')
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream|null>(null)
-  const fileRef   = useRef<HTMLInputElement>(null)
+  const [mode,         setMode]        = useState<ScanMode>('camera')
+  const [camMode,      setCamMode]     = useState<CamMode>('costas')
+  const [camActive,    setCamActive]   = useState(false)
+  const [camError,     setCamError]    = useState('')
+  const [scanning,     setScanning]    = useState(false)
+  const [processing,   setProcessing]  = useState(false)
+  const [results,      setResults]     = useState<{found:string[];error?:string}|null>(null)
+  const [saving,       setSaving]      = useState(false)
+  const [manual,       setManual]      = useState('')
+  const [lista,        setLista]       = useState('')
+  const [verifyResult, setVerifyResult]= useState<VerifyResponse|null>(null)
+  const [verifying,    setVerifying]   = useState(false)
+  const videoRef      = useRef<HTMLVideoElement>(null)
+  const streamRef     = useRef<MediaStream|null>(null)
+  const fileRef       = useRef<HTMLInputElement>(null)
+  const verifyFileRef = useRef<HTMLInputElement>(null)
 
   const validIds    = new Set(allStickers.map(s=>s.id))
   const stickerById = Object.fromEntries(allStickers.map(s=>[s.id,s]))
@@ -61,6 +67,8 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
   }, [])
 
   useEffect(() => { if(mode==='camera') startCam(); else stopCam(); return stopCam }, [mode, startCam, stopCam])
+
+  function switchMode(m: ScanMode) { setMode(m); setResults(null); setVerifyResult(null) }
 
   async function handleCapture() {
     if(!videoRef.current||scanning||!camActive) return
@@ -90,7 +98,7 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
   function handleManual() {
     const code=manual.trim().toUpperCase().replace(/\s/g,'')
     if(!code) return
-    if(!validIds.has(code)) { setResults({found:[],error:`Código "${code}" não encontrado. Formato: BRA-07, FIFA-01`}); return }
+    if(!validIds.has(code)) { setResults({found:[],error:`Código "${code}" não encontrado. Formato: BRA-07, FWC-01`}); return }
     setResults({found:[code]}); setManual('')
   }
 
@@ -100,12 +108,29 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
     setResults({found:codes})
   }
 
+  async function handleVerifyFile(file: File) {
+    setVerifying(true); setVerifyResult(null)
+    try {
+      const b64 = await stripExif(file)
+      const r = await fetch('/api/verify-page', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({image:b64}) })
+      if (!r.ok) { const e=await r.json().catch(()=>({error:'Erro'})); throw new Error(e.error??'Falha') }
+      setVerifyResult(await r.json() as VerifyResponse)
+    } catch(e:unknown) { setVerifyResult({pageTeam:null,teamName:null,teamFlag:null,issues:[],error:e instanceof Error?e.message:'Erro ao verificar.'}) }
+    setVerifying(false)
+  }
+
   async function handleConfirm() {
     if(!results?.found?.length) return
     setSaving(true); await onAdd(results.found); setResults(null); setLista(''); setSaving(false)
   }
 
-  const MODES=[{id:'camera'as ScanMode,icon:'📷',label:'Câmera'},{id:'manual'as ScanMode,icon:'⌨️',label:'Manual'},{id:'upload'as ScanMode,icon:'🖼️',label:'Imagem'},{id:'lista'as ScanMode,label:'Lista',icon:'📝'}]
+  const MODES=[
+    {id:'camera'   as ScanMode,icon:'📷',label:'Câmera'},
+    {id:'manual'   as ScanMode,icon:'⌨️',label:'Manual'},
+    {id:'upload'   as ScanMode,icon:'🖼️',label:'Imagem'},
+    {id:'lista'    as ScanMode,icon:'📝',label:'Lista'},
+    {id:'verificar'as ScanMode,icon:'🔍',label:'Verificar'},
+  ]
 
   return (
     <div style={{paddingBottom:'7rem'}}>
@@ -119,13 +144,12 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
         </div>
       </div>
 
-      {/* 4 modos (Ana Lúcia — câmera nunca é o único caminho) */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'.5rem',padding:'.75rem 1rem'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'.375rem',padding:'.75rem 1rem'}}>
         {MODES.map(m => (
-          <button key={m.id} onClick={()=>{setMode(m.id);setResults(null)}} aria-pressed={mode===m.id} aria-label={`Modo: ${m.label}`}
-            style={{padding:'.625rem',borderRadius:'1rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'.375rem',border:`2px solid ${mode===m.id?'#00c850':'#1e3a5a'}`,cursor:'pointer',fontSize:'.75rem',fontWeight:600,
+          <button key={m.id} onClick={()=>switchMode(m.id)} aria-pressed={mode===m.id} aria-label={`Modo: ${m.label}`}
+            style={{padding:'.5rem .25rem',borderRadius:'1rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'.25rem',border:`2px solid ${mode===m.id?'#00c850':'#1e3a5a'}`,cursor:'pointer',fontSize:'.6875rem',fontWeight:600,
               background:mode===m.id?'linear-gradient(135deg,#00c850,#009640)':'#0d1f33',color:mode===m.id?'#060d1a':'#6b93b8'}}>
-            <span style={{fontSize:'1.25rem'}} aria-hidden="true">{m.icon}</span>{m.label}
+            <span style={{fontSize:'1.125rem'}} aria-hidden="true">{m.icon}</span>{m.label}
           </button>
         ))}
       </div>
@@ -133,7 +157,6 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
       <div style={{padding:'0 1rem'}}>
         {mode==='camera' && (
           <div>
-            {/* 2 submodos (Clara) */}
             <div style={{display:'flex',background:'#060d1a',borderRadius:'.75rem',padding:'.25rem',gap:'.25rem',marginBottom:'.75rem'}}>
               {([['costas','📄 Verso das figurinhas'],['pagina','📖 Página do álbum']] as const).map(([cm,label])=>(
                 <button key={cm} onClick={()=>setCamMode(cm)} aria-pressed={camMode===cm}
@@ -173,7 +196,7 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
 
         {mode==='manual' && (
           <div className="card" style={{padding:'1.25rem'}}>
-            <p style={{color:'#6b93b8',fontSize:'.875rem',lineHeight:1.6,marginBottom:'1rem'}}>Digite o código do verso.<br/><span style={{color:'#00c850',fontFamily:'monospace'}}>BRA-07 · ARG-03 · FIFA-01</span></p>
+            <p style={{color:'#6b93b8',fontSize:'.875rem',lineHeight:1.6,marginBottom:'1rem'}}>Digite o código do verso.<br/><span style={{color:'#00c850',fontFamily:'monospace'}}>BRA-07 · ARG-03 · FWC-01</span></p>
             <label htmlFor="manual-input" style={{display:'block',color:'#6b93b8',fontSize:'.75rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.5rem'}}>Código da figurinha</label>
             <input id="manual-input" className="ft-input" style={{textAlign:'center',fontFamily:'monospace',fontSize:'1.5rem',letterSpacing:'.1em',fontWeight:700,marginBottom:'.75rem'}}
               value={manual} onChange={e=>setManual(e.target.value.toUpperCase())} onKeyDown={e=>e.key==='Enter'&&handleManual()} maxLength={8} placeholder="BRA-07" aria-required="true"/>
@@ -196,13 +219,86 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
         {mode==='lista' && (
           <div className="card" style={{padding:'1.25rem'}}>
             <label htmlFor="lista-input" style={{display:'block',color:'#6b93b8',fontSize:'.875rem',lineHeight:1.6,marginBottom:'.75rem'}}>Cole os códigos separados por vírgula, espaço ou Enter:</label>
-            <textarea id="lista-input" className="ft-input" rows={6} value={lista} onChange={e=>setLista(e.target.value)} placeholder={'BRA-01, BRA-03, ARG-07\nFRA-15, ESP-04, FIFA-01'} style={{marginBottom:'.75rem',resize:'vertical'}} aria-label="Lista de códigos"/>
+            <textarea id="lista-input" className="ft-input" rows={6} value={lista} onChange={e=>setLista(e.target.value)} placeholder={'BRA-01, BRA-03, ARG-07\nFRA-15, ESP-04, FWC-01'} style={{marginBottom:'.75rem',resize:'vertical'}} aria-label="Lista de códigos"/>
             <button onClick={handleLista} className="btn-primary" aria-label="Importar lista">📥  IMPORTAR LISTA</button>
           </div>
         )}
 
-        {/* Resultados */}
-        {results && (
+        {mode==='verificar' && (
+          <div>
+            <div className="card" style={{padding:'1.25rem',marginBottom:'1rem',textAlign:'center'}}>
+              <div style={{fontSize:'2.5rem',marginBottom:'.5rem'}} aria-hidden="true">📖</div>
+              <p style={{color:'#f0f8ff',fontWeight:600,marginBottom:'.25rem'}}>Verificar Página do Álbum</p>
+              <p style={{color:'#6b93b8',fontSize:'.875rem',lineHeight:1.6}}>Fotografe uma página do álbum para detectar figurinhas de outra seleção coladas no lugar errado.</p>
+            </div>
+
+            <input ref={verifyFileRef} type="file" accept="image/*" capture="environment" style={{display:'none'}}
+              onChange={e=>{ if(e.target.files?.[0]) { handleVerifyFile(e.target.files[0]); e.target.value='' } }} aria-label="Fotografar página do álbum"/>
+            <button onClick={()=>verifyFileRef.current?.click()} disabled={verifying} className="btn-primary"
+              style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'.75rem',marginBottom:'1rem'}} aria-label="Fotografar ou selecionar página do álbum">
+              {verifying
+                ?<><span className="animate-spin" style={{width:20,height:20,border:'2px solid rgba(255,255,255,.3)',borderTopColor:'white',borderRadius:'50%',display:'inline-block'}} aria-hidden="true"/>VERIFICANDO...</>
+                :'📸  FOTOGRAFAR PÁGINA'}
+            </button>
+
+            {verifyResult && (
+              <div className="animate-slide-up">
+                {verifyResult.error ? (
+                  <div className="card" style={{padding:'1.25rem',textAlign:'center',borderColor:'rgba(255,149,0,.5)',background:'#2a1800'}}>
+                    <div style={{fontSize:'2rem',marginBottom:'.5rem'}} aria-hidden="true">⚠️</div>
+                    <p style={{color:'#ff9500',fontSize:'.875rem',lineHeight:1.6}} role="alert">{verifyResult.error}</p>
+                  </div>
+                ) : (
+                  <div>
+                    {verifyResult.pageTeam ? (
+                      <div className="card" style={{padding:'.875rem 1rem',marginBottom:'.75rem',display:'flex',alignItems:'center',gap:'.75rem'}}>
+                        <span style={{fontSize:'1.75rem'}} aria-hidden="true">{verifyResult.teamFlag}</span>
+                        <div>
+                          <div style={{color:'#f0f8ff',fontWeight:600,fontSize:'.9375rem'}}>{verifyResult.teamName}</div>
+                          <div style={{color:'#3a5a7a',fontSize:'.75rem'}}>Seleção identificada</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="card" style={{padding:'.875rem 1rem',marginBottom:'.75rem',borderColor:'rgba(255,149,0,.35)'}}>
+                        <p style={{color:'#ff9500',fontSize:'.875rem'}} role="status">Seleção não identificada — tente com melhor iluminação ou enquadramento.</p>
+                      </div>
+                    )}
+
+                    {verifyResult.issues.length === 0 ? (
+                      <div className="card" style={{padding:'1.5rem',textAlign:'center',borderColor:'rgba(0,200,80,.35)',background:'#092a16'}}>
+                        <div style={{fontSize:'2.5rem',marginBottom:'.5rem'}} aria-hidden="true">✅</div>
+                        <p style={{color:'#00c850',fontWeight:700,fontSize:'1rem'}} role="status">Tudo no lugar!</p>
+                        <p style={{color:'#3a5a7a',fontSize:'.8125rem',marginTop:'.25rem'}}>Nenhuma figurinha fora da seleção detectada.</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{fontFamily:'Oswald',fontSize:'1.125rem',fontWeight:700,color:'#ff9500',marginBottom:'.625rem'}} aria-live="polite">
+                          {verifyResult.issues.length} problema{verifyResult.issues.length!==1?'s':''} encontrado{verifyResult.issues.length!==1?'s':''}
+                        </p>
+                        <div style={{display:'flex',flexDirection:'column',gap:'.5rem'}}>
+                          {verifyResult.issues.map((issue, i) => (
+                            <div key={i} className="card animate-pop" style={{padding:'.875rem 1rem',borderColor:'rgba(255,149,0,.5)',background:'#1a0e00',animationDelay:`${i*.05}s`}}>
+                              <div style={{display:'flex',alignItems:'center',gap:'.625rem',marginBottom:'.375rem'}}>
+                                <span style={{fontSize:'1.25rem'}} aria-hidden="true">⚠️</span>
+                                {issue.slotCode && (
+                                  <span style={{fontFamily:'monospace',fontSize:'.875rem',fontWeight:700,color:'#ff9500',background:'#2a1800',padding:'.125rem .5rem',borderRadius:'.375rem',border:'1px solid #4a2e00'}}>{issue.slotCode}</span>
+                                )}
+                              </div>
+                              <p style={{color:'#f0c080',fontSize:'.8125rem',lineHeight:1.5,margin:0}}>{issue.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Resultados do scanner (exceto verificar) */}
+        {results && mode !== 'verificar' && (
           <div style={{marginTop:'1rem'}} className="animate-slide-up">
             {results.error ? (
               <div className="card" style={{padding:'1.25rem',textAlign:'center',borderColor:'rgba(255,149,0,.5)',background:'#2a1800'}}>
