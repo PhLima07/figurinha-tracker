@@ -11,10 +11,13 @@ export default function App({ Component, pageProps }: AppProps) {
     <SessionContextProvider supabaseClient={supabase} initialSession={pageProps.initialSession}>
       <Head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#060d1a" />
         <meta name="description" content="Gerencie sua coleção de figurinhas da Copa do Mundo FIFA 2026." />
         <title>FigurinhaTracker · Copa 2026</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
       </Head>
       <Component {...pageProps} />
     </SessionContextProvider>

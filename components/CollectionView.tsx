@@ -130,7 +130,8 @@ export default function CollectionView({ collection, allStickers, teamById, onTo
             return(
               <button key={s.id} onClick={()=>onToggle(s.id)} role="listitem"
                 aria-label={`${s.id}: ${s.name}, ${team?.name??'Especial'}, ${cfg.label}. Toque para alterar.`}
-                style={{aspectRatio:'2/3',borderRadius:'.75rem',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.125rem',padding:'.25rem',position:'relative',border:`1.5px solid ${cfg.border}`,background:cfg.bg,cursor:'pointer',transition:'background .15s ease,border-color .15s ease'}}>
+                style={{aspectRatio:'2/3',borderRadius:'.75rem',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.125rem',padding:'.25rem',position:'relative',border:`1.5px solid ${s.isSpecial?'#ffd60a':cfg.border}`,background:cfg.bg,cursor:'pointer',transition:'background .15s ease,border-color .15s ease',overflow:'hidden'}}>
+                {s.isSpecial&&<div className="foil-shimmer" style={{position:'absolute',inset:0,borderRadius:'.75rem',pointerEvents:'none'}} aria-hidden="true"/>}
                 {s.isSpecial&&<div style={{position:'absolute',top:3,right:3,fontSize:'.4375rem'}} aria-hidden="true">✨</div>}
                 {qty>1&&<div style={{position:'absolute',top:3,left:3,width:14,height:14,background:'#ff9500',color:'white',borderRadius:'50%',fontSize:'.5rem',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}} aria-hidden="true">{qty}</div>}
                 <span style={{fontSize:'1rem'}} aria-hidden="true">{team?.flag??'⭐'}</span>

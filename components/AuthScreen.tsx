@@ -14,7 +14,8 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
   const [erro, setErro] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [blocked, setBlocked] = useState(false)
-  const [consent, setConsent] = useState(false)
+  const [consentPriv, setConsentPriv] = useState(false)
+  const [consentTerms, setConsentTerms] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
 
   const currentYear = 2026
@@ -23,7 +24,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
   const ageParental = age !== null && age >= 12 && age < 15
 
   async function handleGoogle() {
-    if (!consent) { setErro('Aceite os termos para continuar.'); return }
+    if (!consentPriv || !consentTerms) { setErro('Aceite a Política de Privacidade e os Termos de Uso.'); return }
     setGLoading(true); setErro('')
     const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo:`${window.location.origin}/api/auth/callback` } })
     if (error) { setErro('Erro ao conectar com Google.'); setGLoading(false) }
@@ -31,7 +32,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
 
   async function handleEmail() {
     if (blocked) { setErro('Conta bloqueada por 5 minutos.'); return }
-    if (!consent) { setErro('Aceite os termos para continuar.'); return }
+    if (!consentPriv || !consentTerms) { setErro('Aceite a Política de Privacidade e os Termos de Uso.'); return }
     if (!email.trim() || !senha.trim()) { setErro('Preencha todos os campos.'); return }
     if (tab === 'cadastro' && !nome.trim()) { setErro('Informe seu nome.'); return }
     if (tab === 'cadastro' && !birthYear) { setErro('Informe seu ano de nascimento.'); return }
@@ -145,12 +146,20 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
           </div>
         </div>
 
-        <label style={{display:'flex',alignItems:'flex-start',gap:'.75rem',marginBottom:'1.25rem',cursor:'pointer'}}>
-          <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:'.125rem',accentColor:'#00c850'}} aria-required="true"/>
-          <span style={{color:'#6b93b8',fontSize:'.75rem',lineHeight:1.6}}>
-            Li e aceito a <a href="/privacidade" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os <a href="/termos" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Termos de Uso</a>. Confirmo que tenho 12 anos ou mais (ou sou responsável pelo menor). Dados protegidos pela LGPD.
-          </span>
-        </label>
+        <div style={{display:'flex',flexDirection:'column',gap:'.625rem',marginBottom:'1.25rem'}}>
+          <label style={{display:'flex',alignItems:'flex-start',gap:'.75rem',cursor:'pointer'}}>
+            <input type="checkbox" checked={consentPriv} onChange={e=>setConsentPriv(e.target.checked)} style={{marginTop:'.2rem',accentColor:'#00c850',flexShrink:0}} aria-required="true"/>
+            <span style={{color:'#6b93b8',fontSize:'.8125rem',lineHeight:1.6}}>
+              Li e aceito a <a href="/privacidade" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Política de Privacidade</a>. Dados protegidos pela LGPD.
+            </span>
+          </label>
+          <label style={{display:'flex',alignItems:'flex-start',gap:'.75rem',cursor:'pointer'}}>
+            <input type="checkbox" checked={consentTerms} onChange={e=>setConsentTerms(e.target.checked)} style={{marginTop:'.2rem',accentColor:'#00c850',flexShrink:0}} aria-required="true"/>
+            <span style={{color:'#6b93b8',fontSize:'.8125rem',lineHeight:1.6}}>
+              Li e aceito os <a href="/termos" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Termos de Uso</a>. Confirmo que tenho 12 anos ou mais (ou sou responsável pelo menor).
+            </span>
+          </label>
+        </div>
 
         {erro && (
           <div role="alert" style={{display:'flex',gap:'.5rem',background:'#2a0a0a',border:'1px solid rgba(255,71,87,.5)',borderRadius:'.75rem',padding:'.75rem',marginBottom:'1rem',color:'#ff8090',fontSize:'.875rem'}}>
