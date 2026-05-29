@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useUser } from '@supabase/auth-helpers-react'
-import { updateProfile, type DbProfile } from '@/lib/supabase'
 import { parseCodesFromText, TEAMS, type Sticker, type CollectionMap } from '@/lib/data'
 
 type ScanMode = 'camera'|'manual'|'upload'|'lista'|'verificar'
@@ -28,10 +26,9 @@ async function analyze(b64: string): Promise<string[]> {
   return ((await r.json()) as {found:string[]}).found
 }
 
-interface Props { profile:DbProfile; collection:CollectionMap; allStickers:Sticker[]; onAdd:(ids:string[])=>Promise<void>; onProfileUpdate:(p:DbProfile)=>void }
+interface Props { collection:CollectionMap; allStickers:Sticker[]; onAdd:(ids:string[])=>Promise<void> }
 
-export default function ScannerView({ profile, collection, allStickers, onAdd, onProfileUpdate }: Props) {
-  const user = useUser()
+export default function ScannerView({ collection, allStickers, onAdd }: Props) {
   const [mode,         setMode]        = useState<ScanMode>('camera')
   const [camMode,      setCamMode]     = useState<CamMode>('costas')
   const [camActive,    setCamActive]   = useState(false)
@@ -52,8 +49,6 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
   const validIds    = new Set(allStickers.map(s=>s.id))
   const stickerById = Object.fromEntries(allStickers.map(s=>[s.id,s]))
   const teamById    = Object.fromEntries(TEAMS.map(t=>[t.id,t]))
-  const scanLeft    = Math.max(0,(profile.scan_limit??50)-(profile.scan_count??0))
-  const scanPct     = Math.round(scanLeft/(profile.scan_limit??50)*100)
 
   const stopCam = useCallback(() => { streamRef.current?.getTracks().forEach(t=>t.stop()); streamRef.current=null; setCamActive(false) }, [])
   const startCam = useCallback(async () => {
@@ -72,7 +67,6 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
 
   async function handleCapture() {
     if(!videoRef.current||scanning||!camActive) return
-    if(scanLeft<=0) { setResults({found:[],error:'Limite de escaneamentos atingido.'}); return }
     setScanning(true); setResults(null)
     try {
       const c=document.createElement('canvas'); c.width=videoRef.current.videoWidth||640; c.height=videoRef.current.videoHeight||480
@@ -80,10 +74,7 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
       const b64=c.toDataURL('image/jpeg',.85).split(',')[1]
       const found=await analyze(b64)
       setResults({found,error:found.length===0?'Nenhuma figurinha identificada. Tente mais perto ou com melhor iluminação.':undefined})
-      if(found.length>0) {
-        navigator.vibrate?.(80)
-        if(user) { const nc=(profile.scan_count??0)+1; await updateProfile(user.id,{scan_count:nc}); onProfileUpdate({...profile,scan_count:nc}) }
-      }
+      if(found.length>0) navigator.vibrate?.(80)
     } catch(e:unknown) { setResults({found:[],error:e instanceof Error?e.message:'Erro ao processar.'}) }
     setScanning(false)
   }
@@ -135,13 +126,7 @@ export default function ScannerView({ profile, collection, allStickers, onAdd, o
   return (
     <div style={{paddingBottom:'7rem'}}>
       <div style={{padding:'1.25rem 1rem 0'}}>
-        <h1 style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#f0f8ff',marginBottom:'.5rem'}}>Escanear</h1>
-        <div style={{display:'flex',alignItems:'center',gap:'.625rem',marginBottom:'.75rem'}}>
-          <div className="progress-bar" style={{flex:1}} aria-label={`${scanLeft} scans restantes`}>
-            <div className="progress-fill" style={{width:`${scanPct}%`,background:scanLeft>15?undefined:'linear-gradient(90deg,#ff9500,#ff4757)'}}/>
-          </div>
-          <span style={{fontSize:'.75rem',fontWeight:500,color:scanLeft>15?'#6b93b8':'#ff9500',flexShrink:0}}>{scanLeft}/{profile.scan_limit??50} scans</span>
-        </div>
+        <h1 style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#f0f8ff',marginBottom:'.75rem'}}>Escanear</h1>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'.375rem',padding:'.75rem 1rem'}}>

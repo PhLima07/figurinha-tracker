@@ -25,9 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
-    const result = await model.generateContent([
-      { inlineData: { data: image, mimeType: 'image/jpeg' } },
-      prompt
+    const result = await Promise.race([
+      model.generateContent([
+        { inlineData: { data: image, mimeType: 'image/jpeg' } },
+        prompt
+      ]),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('IA timeout')), 10000))
     ])
     const text = result.response.text()
     let found: string[] = []

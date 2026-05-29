@@ -4,7 +4,7 @@ export interface Achievement { id:string; icon:string; title:string; desc:string
 export interface CollectionEntry { quantity:number; pasted:boolean; addedAt:string }
 export type CollectionMap = Record<string,CollectionEntry>
 export interface CollectionStats { total:number; pasted:number; repeated:number; missing:number; pct:number }
-export interface StatusConfig { label:string; icon:string; color:string; bg:string; border:string }
+export interface StatusConfig { label:string; icon:string; svg:string; color:string; bg:string; border:string }
 export type StickerStatus = 'faltando'|'tenho'|'colada'|'repetida'
 
 // 48 times na ordem exata do álbum Panini Copa 2026 (Grupos A–L)
@@ -170,10 +170,10 @@ export function generateAllStickers(): Sticker[] {
 }
 
 export const STATUS_CONFIG: Record<StickerStatus,StatusConfig> = {
-  faltando:{label:'Faltando',icon:'⬜',color:'#6b93b8',bg:'#0d1f33',border:'#1e3a5a'},
-  tenho:   {label:'Tenho',   icon:'📦',color:'#3b82f6',bg:'#091d40',border:'#1e3a8a'},
-  colada:  {label:'Colada',  icon:'✅',color:'#00c850',bg:'#092a16',border:'#1a4a2a'},
-  repetida:{label:'Repetida',icon:'🔄',color:'#ff9500',bg:'#2a1800',border:'#4a2e00'},
+  faltando:{label:'Faltando',icon:'⬜',svg:'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="#6b93b8" stroke-width="1.5"/></svg>',color:'#6b93b8',bg:'#0d1f33',border:'#1e3a5a'},
+  tenho:   {label:'Tenho',   icon:'📦',svg:'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" fill="#3b82f6"/></svg>',color:'#3b82f6',bg:'#091d40',border:'#1e3a8a'},
+  colada:  {label:'Colada',  icon:'✅',svg:'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-6" stroke="#00c850" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',color:'#00c850',bg:'#092a16',border:'#1a4a2a'},
+  repetida:{label:'Repetida',icon:'🔄',svg:'<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8M9 2l2 2-2 2" stroke="#ff9500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 10H3M5 8l-2 2 2 2" stroke="#ff9500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',color:'#ff9500',bg:'#2a1800',border:'#4a2e00'},
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
