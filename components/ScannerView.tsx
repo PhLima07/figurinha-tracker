@@ -43,6 +43,7 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
   const [verifying,    setVerifying]   = useState(false)
   const videoRef      = useRef<HTMLVideoElement>(null)
   const streamRef     = useRef<MediaStream|null>(null)
+  const mountedRef    = useRef(true)
   const fileRef       = useRef<HTMLInputElement>(null)
   const verifyFileRef = useRef<HTMLInputElement>(null)
 
@@ -55,13 +56,18 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
     setCamError('')
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
+      if (!mountedRef.current) { s.getTracks().forEach(t=>t.stop()); return }
       streamRef.current=s
       if(videoRef.current) { videoRef.current.srcObject=s; await videoRef.current.play().catch(()=>{}) }
       setCamActive(true)
-    } catch { setCamError('Câmera não disponível. Use outro modo abaixo.') }
+    } catch { if(mountedRef.current) setCamError('Câmera não disponível. Use outro modo abaixo.') }
   }, [])
 
-  useEffect(() => { if(mode==='camera') startCam(); else stopCam(); return stopCam }, [mode, startCam, stopCam])
+  useEffect(() => {
+    mountedRef.current = true
+    if(mode==='camera') startCam(); else stopCam()
+    return () => { mountedRef.current = false; stopCam() }
+  }, [mode, startCam, stopCam])
 
   function switchMode(m: ScanMode) { setMode(m); setResults(null); setVerifyResult(null) }
 
@@ -132,8 +138,8 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
       <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'.375rem',padding:'.75rem 1rem'}}>
         {MODES.map(m => (
           <button key={m.id} onClick={()=>switchMode(m.id)} aria-pressed={mode===m.id} aria-label={`Modo: ${m.label}`}
-            style={{padding:'.5rem .25rem',borderRadius:'1rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'.25rem',border:`2px solid ${mode===m.id?'#00c850':'#1e3a5a'}`,cursor:'pointer',fontSize:'.6875rem',fontWeight:600,
-              background:mode===m.id?'linear-gradient(135deg,#00c850,#009640)':'#0d1f33',color:mode===m.id?'#060d1a':'#6b93b8'}}>
+            style={{padding:'.625rem .25rem',minHeight:44,borderRadius:'1rem',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.25rem',border:`2px solid ${mode===m.id?'#00c850':'#1e3a5a'}`,cursor:'pointer',fontSize:'.6875rem',fontWeight:600,
+              background:mode===m.id?'#00c850':'#0d1f33',color:mode===m.id?'#060d1a':'#6b93b8'}}>
             <span style={{fontSize:'1.125rem'}} aria-hidden="true">{m.icon}</span>{m.label}
           </button>
         ))}

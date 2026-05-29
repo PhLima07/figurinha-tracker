@@ -47,16 +47,21 @@ export default function DashboardView({ profile, collection, allStickers, teamBy
       {/* Top seleções */}
       <h2 style={{fontFamily:'Oswald',fontSize:'1.125rem',fontWeight:600,color:'#f0f8ff',marginBottom:'.75rem'}}>🏅 Seleções Mais Completas</h2>
       <div className="card" style={{overflow:'hidden',marginBottom:'1.25rem'}}>
-        {topTeams.slice(0,6).map((team,i) => (
+        {topTeams.slice(0,6).map((team,i) => {
+          const pct = Math.round(team.progress/20*100)
+          return (
           <div key={team.id} style={{padding:'1rem',borderBottom:i<5?'1px solid #1e3a5a':'none'}}>
             <div style={{display:'flex',alignItems:'center',gap:'.625rem',marginBottom:'.375rem'}}>
               <span style={{fontSize:'1.25rem'}} aria-hidden="true">{team.flag}</span>
               <span style={{color:'#f0f8ff',fontSize:'.875rem',fontWeight:500,flex:1}}>{team.name}</span>
-              <span style={{fontSize:'.75rem',fontWeight:600,color:team.progress===20?'#ffd60a':'#6b93b8'}} aria-label={`${team.progress} de 20`}>{team.progress}/20{team.progress===20?' ✨':''}</span>
+              <span style={{fontSize:'.75rem',fontWeight:600,color:team.progress===20?'#ffd60a':'#6b93b8'}} aria-label={`${team.progress} de 20, ${pct}%`}>{team.progress}/20{team.progress===20?' ✨':''}</span>
             </div>
-            <div className="progress-bar"><div className="progress-fill" style={{width:`${(team.progress/20)*100}%`,background:team.progress===20?'linear-gradient(90deg,#ffd60a,#ff9500)':undefined}}/></div>
+            <div style={{display:'flex',alignItems:'center',gap:'.5rem'}}>
+              <div className="progress-bar" style={{flex:1}} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="progress-fill" style={{width:`${pct}%`,background:team.progress===20?'linear-gradient(90deg,#ffd60a,#ff9500)':undefined}}/></div>
+              <span style={{fontSize:'.6875rem',color:'#3a5a7a',width:'2.5rem',textAlign:'right',flexShrink:0}}>{pct}%</span>
+            </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {/* Custo estimado */}
