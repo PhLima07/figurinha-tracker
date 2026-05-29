@@ -7,6 +7,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [birthYear, setBirthYear] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [gLoading, setGLoading] = useState(false)
@@ -15,6 +16,11 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
   const [blocked, setBlocked] = useState(false)
   const [consent, setConsent] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+
+  const currentYear = 2026
+  const age = birthYear ? currentYear - parseInt(birthYear) : null
+  const ageBlocked  = age !== null && age < 12
+  const ageParental = age !== null && age >= 12 && age < 15
 
   async function handleGoogle() {
     if (!consent) { setErro('Aceite os termos para continuar.'); return }
@@ -28,6 +34,8 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
     if (!consent) { setErro('Aceite os termos para continuar.'); return }
     if (!email.trim() || !senha.trim()) { setErro('Preencha todos os campos.'); return }
     if (tab === 'cadastro' && !nome.trim()) { setErro('Informe seu nome.'); return }
+    if (tab === 'cadastro' && !birthYear) { setErro('Informe seu ano de nascimento.'); return }
+    if (tab === 'cadastro' && ageBlocked) { setErro('Menores de 12 anos não podem usar este app.'); return }
     if (senha.length < 6) { setErro('Senha com mínimo 6 caracteres.'); return }
     setLoading(true); setErro('')
     try {
@@ -105,10 +113,18 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         {tab==='cadastro' && (
-          <div style={{marginBottom:'1rem'}}>
-            <label htmlFor="auth-nome" style={{display:'block',color:'#6b93b8',fontSize:'.75rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.375rem'}}>Seu nome</label>
-            <input id="auth-nome" type="text" className="ft-input" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: João Silva" autoComplete="name" aria-required="true"/>
-          </div>
+          <>
+            <div style={{marginBottom:'1rem'}}>
+              <label htmlFor="auth-nome" style={{display:'block',color:'#6b93b8',fontSize:'.75rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.375rem'}}>Seu nome</label>
+              <input id="auth-nome" type="text" className="ft-input" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: João Silva" autoComplete="name" aria-required="true"/>
+            </div>
+            <div style={{marginBottom:'1rem'}}>
+              <label htmlFor="auth-nascimento" style={{display:'block',color:'#6b93b8',fontSize:'.75rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.375rem'}}>Ano de nascimento</label>
+              <input id="auth-nascimento" type="number" className="ft-input" value={birthYear} onChange={e=>setBirthYear(e.target.value)} placeholder="Ex: 2001" min="1900" max="2026" aria-required="true"/>
+              {ageBlocked && <p style={{color:'#ff4757',fontSize:'.75rem',marginTop:'.375rem'}}>⛔ Menores de 12 anos não podem usar este app.</p>}
+              {ageParental && <p style={{color:'#ff9500',fontSize:'.75rem',marginTop:'.375rem'}}>⚠️ Para menores de 15 anos, recomendamos que um responsável acompanhe o cadastro.</p>}
+            </div>
+          </>
         )}
 
         <div style={{marginBottom:'1rem'}}>
@@ -132,7 +148,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
         <label style={{display:'flex',alignItems:'flex-start',gap:'.75rem',marginBottom:'1.25rem',cursor:'pointer'}}>
           <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:'.125rem',accentColor:'#00c850'}} aria-required="true"/>
           <span style={{color:'#6b93b8',fontSize:'.75rem',lineHeight:1.6}}>
-            Li e aceito a <a href="/privacidade" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os <a href="/termos" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Termos de Uso</a>. Dados protegidos pela LGPD.
+            Li e aceito a <a href="/privacidade" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os <a href="/termos" style={{color:'#00c850'}} target="_blank" rel="noopener noreferrer">Termos de Uso</a>. Confirmo que tenho 12 anos ou mais (ou sou responsável pelo menor). Dados protegidos pela LGPD.
           </span>
         </label>
 

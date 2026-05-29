@@ -18,7 +18,7 @@ export default function Privacidade() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ fontSize: '3rem', marginBottom: '.5rem' }}>🔒</div>
           <h1 style={{ ...S, fontSize: '1.75rem', fontWeight: 700, color: '#ffd60a', letterSpacing: '.1em', margin: 0 }}>PRIVACIDADE</h1>
-          <p style={{ color: '#6b93b8', fontSize: '.75rem', marginTop: '.5rem' }}>Atualizado em 28 de maio de 2026</p>
+          <p style={{ color: '#6b93b8', fontSize: '.75rem', marginTop: '.5rem' }}>Atualizado em 29 de maio de 2026</p>
         </div>
 
         <div style={{ color: '#a0c0d8', lineHeight: 1.75, fontSize: '.9375rem' }}>
@@ -34,7 +34,7 @@ export default function Privacidade() {
           <Section title="2. Como usamos seus dados">
             <ul>
               <li>Para mostrar sua coleção e progresso no álbum.</li>
-              <li>Para analisar fotos de figurinhas com inteligência artificial (Claude Vision) e identificar automaticamente o código da figurinha.</li>
+              <li>Para analisar fotos de figurinhas com inteligência artificial (<strong>Google Gemini</strong>, da Google LLC) e identificar automaticamente o código da figurinha. As imagens são enviadas ao serviço do Google apenas para análise e descartadas imediatamente — o Google não as armazena.</li>
               <li>Não vendemos, não compartilhamos e não usamos seus dados para publicidade.</li>
             </ul>
           </Section>

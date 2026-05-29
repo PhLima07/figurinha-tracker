@@ -1,0 +1,5 @@
+Contact: mailto:pedrophslima@gmail.com
+Expires: 2027-05-29T00:00:00.000Z
+Preferred-Languages: pt, en
+Policy: https://figurinha-tracker.vercel.app/privacidade
+Acknowledgments: https://figurinha-tracker.vercel.app

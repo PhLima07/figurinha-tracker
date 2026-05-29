@@ -45,7 +45,7 @@ export default function MainApp({ profile, collection, setCollection, allSticker
     <>
       <main id="main-content" tabIndex={-1}>
         {tab==='inicio'     && <DashboardView    profile={profile} collection={collection} allStickers={allStickers} teamById={teamById} onTabChange={setTab}/>}
-        {tab==='escanear'   && <ScannerView      profile={profile} collection={collection} allStickers={allStickers} onAdd={handleAdd} onProfileUpdate={onProfileUpdate}/>}
+        {tab==='escanear'   && <ScannerView      collection={collection} allStickers={allStickers} onAdd={handleAdd}/>}
         {tab==='colecao'    && <CollectionView   collection={collection} allStickers={allStickers} teamById={teamById} onToggle={handleToggle}/>}
         {tab==='conquistas' && <AchievementsView collection={collection} allStickers={allStickers}/>}
         {tab==='perfil'     && <ProfileView      profile={profile} collection={collection} allStickers={allStickers} teamById={teamById} onLogout={onLogout} onProfileUpdate={onProfileUpdate}/>}
