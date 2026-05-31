@@ -35,15 +35,18 @@ Responda SOMENTE JSON válido (sem texto fora do JSON):
 Se não houver problemas: {"pageTeam":"BRA","issues":[]}
 Se não identificar a seleção: {"pageTeam":null,"issues":[]}`
 
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return res.status(500).json({ error: 'Chave de API não configurada no servidor.' })
+
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
     const result = await Promise.race([
       model.generateContent([
         { inlineData: { data: image, mimeType: 'image/jpeg' } },
         prompt
       ]),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('IA timeout')), 10000))
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('IA timeout após 25s')), 25000))
     ])
     const text = result.response.text()
     let parsed: { pageTeam: string | null; issues: Array<{ slotCode?: string; description: string }> }
@@ -59,8 +62,10 @@ Se não identificar a seleção: {"pageTeam":null,"issues":[]}`
       teamFlag: team?.flag ?? null,
       issues: (parsed.issues ?? []).slice(0, 20)
     })
-  } catch {
-    return res.status(500).json({ error: 'IA indisponível. Tente novamente.' })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[verify-page] Gemini error:', msg)
+    return res.status(500).json({ error: `IA indisponível: ${msg}` })
   }
 }
 

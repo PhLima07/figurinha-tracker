@@ -22,15 +22,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const teams = TEAMS.map(t => `${t.id}=${t.name}`).join(', ')
   const prompt = `Identifique códigos de figurinhas da Copa 2026 Panini na imagem.\nFormato: SIGLA-NUMERO (ex: BRA-07, FWC-03)\nSiglas válidas: ${teams}, FWC=Especiais introdutórias\nResponda SOMENTE JSON: {"encontradas":["BRA-07"]}\nSe nenhuma: {"encontradas":[]}`
 
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return res.status(500).json({ found: [], error: 'Chave de API não configurada no servidor.' })
+
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
     const result = await Promise.race([
       model.generateContent([
         { inlineData: { data: image, mimeType: 'image/jpeg' } },
         prompt
       ]),
-      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('IA timeout')), 10000))
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('IA timeout após 25s')), 25000))
     ])
     const text = result.response.text()
     let found: string[] = []
@@ -39,7 +42,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       found = (p.encontradas ?? []).filter((id: string) => /^[A-Z]{2,5}-\d{2}$/.test(id))
     } catch { found = [] }
     return res.status(200).json({ found })
-  } catch { return res.status(500).json({ found: [], error: 'IA indisponível. Tente novamente.' }) }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[analyze] Gemini error:', msg)
+    return res.status(500).json({ found: [], error: `IA indisponível: ${msg}` })
+  }
 }
 
 export const config = { api: { bodyParser: { sizeLimit: '8mb' } } }
