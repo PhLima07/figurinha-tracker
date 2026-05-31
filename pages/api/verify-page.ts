@@ -40,7 +40,7 @@ Se não identificar a seleção: {"pageTeam":null,"issues":[]}`
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
     const result = await Promise.race([
       model.generateContent([
         { inlineData: { data: image, mimeType: 'image/jpeg' } },
