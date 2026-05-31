@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import type { AppTab } from './MainApp'
-import { calcStats, getTeamProgress, getStickerStatus, STATUS_CONFIG, TEAMS, type Sticker, type CollectionMap, type Team } from '@/lib/data'
+import { calcStats, getTeamProgress, getGroupProgress, getStickerStatus, STATUS_CONFIG, TEAMS, type Sticker, type CollectionMap, type Team } from '@/lib/data'
 import type { DbProfile } from '@/lib/supabase'
 
 interface Props { profile:DbProfile; collection:CollectionMap; allStickers:Sticker[]; teamById:Record<string,Team>; onTabChange:(t:AppTab)=>void }
@@ -22,6 +22,18 @@ export default function DashboardView({ profile, collection, allStickers, teamBy
   const copaDays  = Math.floor(copaMs / 86_400_000)
   const copaHours = Math.floor((copaMs % 86_400_000) / 3_600_000)
   const copaStarted = copaMs === 0
+
+  const [groupsOpen, setGroupsOpen] = useState(false)
+  const LETTERS = [...new Set(TEAMS.map(t=>t.group))].sort()
+  const groupStats = useMemo(
+    () => LETTERS.map(g => {
+      const {owned,total} = getGroupProgress(g, collection)
+      const pct = Math.round(owned/total*100)
+      const teams = TEAMS.filter(t=>t.group===g)
+      return {g, owned, total, pct, teams}
+    }),
+    [collection]
+  )
 
   const S = (style: React.CSSProperties) => style
 
@@ -93,6 +105,38 @@ export default function DashboardView({ profile, collection, allStickers, teamBy
           </div>
         )})}
       </div>
+
+      {/* Progresso por Grupo */}
+      <button
+        onClick={()=>setGroupsOpen(o=>!o)}
+        aria-expanded={groupsOpen}
+        style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'.75rem 0',background:'none',border:'none',cursor:'pointer',marginBottom:groupsOpen?'.5rem':'1.25rem'}}
+      >
+        <h2 style={{fontFamily:'Oswald',fontSize:'1.125rem',fontWeight:600,color:'#f0f8ff',margin:0}}>🌍 Progresso por Grupo</h2>
+        <span style={{color:'#6b93b8',fontSize:'.875rem',transition:'transform .2s',transform:groupsOpen?'rotate(180deg)':'none'}} aria-hidden="true">▼</span>
+      </button>
+
+      {groupsOpen && (
+        <div className="card animate-slide-up" style={{overflow:'hidden',marginBottom:'1.25rem'}}>
+          {groupStats.map(({g,owned,total,pct,teams},i) => (
+            <div key={g} style={{padding:'.875rem 1rem',borderBottom:i<11?'1px solid #1e3a5a':'none'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'.5rem',marginBottom:'.375rem'}}>
+                <span style={{fontFamily:'Oswald',fontSize:'1rem',fontWeight:700,color:'#ffd60a',minWidth:'1.25rem'}}>{g}</span>
+                <span style={{display:'flex',gap:'.25rem',flexWrap:'nowrap'}}>
+                  {teams.map(t=><span key={t.id} style={{fontSize:'.875rem'}} aria-hidden="true">{t.flag}</span>)}
+                </span>
+                <span style={{marginLeft:'auto',fontSize:'.75rem',fontWeight:600,color:pct===100?'#ffd60a':'#6b93b8'}} aria-label={`${owned} de ${total}, ${pct}%`}>{owned}/{total}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'.5rem'}}>
+                <div className="progress-bar" style={{flex:1}} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="progress-fill" style={{width:`${pct}%`,background:pct===100?'linear-gradient(90deg,#ffd60a,#ff9500)':undefined}}/>
+                </div>
+                <span style={{fontSize:'.6875rem',color:'#3a5a7a',width:'2.5rem',textAlign:'right',flexShrink:0}}>{pct}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Custo estimado */}
       {stats.missing>0 && (
