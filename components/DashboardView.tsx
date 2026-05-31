@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { AppTab } from './MainApp'
 import { calcStats, getTeamProgress, getStickerStatus, STATUS_CONFIG, TEAMS, type Sticker, type CollectionMap, type Team } from '@/lib/data'
 import type { DbProfile } from '@/lib/supabase'
@@ -12,12 +12,42 @@ export default function DashboardView({ profile, collection, allStickers, teamBy
   const stickerById = useMemo(() => Object.fromEntries(allStickers.map(s=>[s.id,s])), [allStickers])
   const custo = Math.ceil(stats.missing/7)*7
 
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const COPA_START = new Date('2026-06-11T00:00:00').getTime()
+  const copaMs    = Math.max(0, COPA_START - now)
+  const copaDays  = Math.floor(copaMs / 86_400_000)
+  const copaHours = Math.floor((copaMs % 86_400_000) / 3_600_000)
+  const copaStarted = copaMs === 0
+
   const S = (style: React.CSSProperties) => style
 
   return (
     <div style={{paddingBottom:'7rem',padding:'1.25rem 1rem 7rem'}}>
       <p style={{color:'#6b93b8',fontSize:'.875rem',marginBottom:'.25rem'}}>Olá, {profile.name.split(' ')[0]} 👋</p>
-      <h1 style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#f0f8ff',marginBottom:'1.25rem'}}>Minha Coleção</h1>
+      <h1 style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#f0f8ff',marginBottom:'1rem'}}>Minha Coleção</h1>
+
+      {/* Copa countdown */}
+      <div className="card" style={{padding:'1rem 1.25rem',marginBottom:'1rem',background:'linear-gradient(135deg,#0d1f33,#091d0e)',borderColor:'#1a4a2a',display:'flex',alignItems:'center',gap:'1rem'}}>
+        <span style={{fontSize:'2rem',filter:'drop-shadow(0 0 8px #ffd60a)'}} aria-hidden="true">🏆</span>
+        <div style={{flex:1}}>
+          <div style={{color:'#6b93b8',fontSize:'.75rem',fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.25rem'}}>Copa do Mundo 2026</div>
+          {copaStarted
+            ? <div style={{fontFamily:'Oswald',fontSize:'1.25rem',fontWeight:700,color:'#ffd60a'}}>A Copa começou! ⚽</div>
+            : <div style={{display:'flex',gap:'1rem',alignItems:'baseline'}}>
+                <span style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#ffd60a',lineHeight:1}} aria-label={`${copaDays} dias`}>{copaDays}<span style={{fontSize:'.75rem',color:'#6b93b8',marginLeft:'.25rem',fontFamily:'inherit',fontWeight:400}}>dias</span></span>
+                <span style={{fontFamily:'Oswald',fontSize:'1.25rem',fontWeight:700,color:'#3a5a7a',lineHeight:1}} aria-label={`${copaHours} horas`}>{copaHours}<span style={{fontSize:'.75rem',color:'#3a5a7a',marginLeft:'.125rem',fontFamily:'inherit',fontWeight:400}}>h</span></span>
+              </div>
+          }
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontSize:'.6875rem',color:'#3a5a7a'}}>11 JUN</div>
+          <div style={{fontSize:'.6875rem',color:'#3a5a7a'}}>2026</div>
+        </div>
+      </div>
 
       {/* % geral */}
       <div className="card" style={{padding:'1.5rem',marginBottom:'1rem',textAlign:'center',background:'linear-gradient(135deg,#091d0e,#0d1f33)',borderColor:'#1a4a2a',position:'relative',overflow:'hidden'}}>
