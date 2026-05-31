@@ -126,7 +126,6 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
     {id:'manual'   as ScanMode,icon:'⌨️',label:'Manual'},
     {id:'upload'   as ScanMode,icon:'🖼️',label:'Imagem'},
     {id:'lista'    as ScanMode,icon:'📝',label:'Lista'},
-    {id:'verificar'as ScanMode,icon:'🔍',label:'Verificar'},
   ]
 
   return (
@@ -135,7 +134,7 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
         <h1 style={{fontFamily:'Oswald',fontSize:'1.875rem',fontWeight:700,color:'#f0f8ff',marginBottom:'.75rem'}}>Escanear</h1>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'.375rem',padding:'.75rem 1rem'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'.375rem',padding:'.75rem 1rem'}}>
         {MODES.map(m => (
           <button key={m.id} onClick={()=>switchMode(m.id)} aria-pressed={mode===m.id} aria-label={`Modo: ${m.label}`}
             style={{padding:'.625rem .25rem',minHeight:44,borderRadius:'1rem',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.25rem',border:`2px solid ${mode===m.id?'#00c850':'#1e3a5a'}`,cursor:'pointer',fontSize:'.6875rem',fontWeight:600,
@@ -144,6 +143,25 @@ export default function ScannerView({ collection, allStickers, onAdd }: Props) {
           </button>
         ))}
       </div>
+
+      {mode !== 'verificar' && (
+        <div style={{padding:'0 1rem .5rem'}}>
+          <button onClick={()=>switchMode('verificar')}
+            style={{width:'100%',display:'flex',alignItems:'center',gap:'.75rem',padding:'.75rem 1rem',background:'#060d1a',border:'1px solid #1e3a5a',borderRadius:'.75rem',cursor:'pointer',color:'#6b93b8',fontSize:'.875rem',fontWeight:600}}>
+            <span style={{fontSize:'1.25rem'}} aria-hidden="true">🔍</span>
+            <span>Verificar Página do Álbum</span>
+            <span style={{marginLeft:'auto',fontSize:'.75rem',color:'#3a5a7a'}} aria-hidden="true">→</span>
+          </button>
+        </div>
+      )}
+      {mode === 'verificar' && (
+        <div style={{padding:'0 1rem .5rem'}}>
+          <button onClick={()=>switchMode('camera')}
+            style={{display:'flex',alignItems:'center',gap:'.5rem',padding:'.5rem .75rem',background:'none',border:'1px solid #1e3a5a',borderRadius:'.75rem',cursor:'pointer',color:'#6b93b8',fontSize:'.8125rem',fontWeight:600}}>
+            <span aria-hidden="true">←</span> Voltar ao scanner
+          </button>
+        </div>
+      )}
 
       <div style={{padding:'0 1rem'}}>
         {mode==='camera' && (

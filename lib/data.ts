@@ -192,6 +192,10 @@ export const ACHIEVEMENTS: Achievement[] = [
 export function getTeamProgress(teamId:string,col:CollectionMap):number{
   let n=0; for(let i=1;i<=20;i++) if(col[`${teamId}-${String(i).padStart(2,'0')}`]) n++; return n
 }
+export function getGroupProgress(group:string,col:CollectionMap):{owned:number;total:number}{
+  const teams=TEAMS.filter(t=>t.group===group)
+  return{owned:teams.reduce((s,t)=>s+getTeamProgress(t.id,col),0),total:teams.length*20}
+}
 export function getStickerStatus(id:string,col:CollectionMap):StickerStatus{
   if(!col[id]) return 'faltando'
   if(col[id].pasted) return 'colada'
